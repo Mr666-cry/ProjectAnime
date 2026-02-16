@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NimeStream - ShadowX Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #0b0b0b; 
+            color: #ffffff; 
+            font-family: 'Inter', sans-serif; 
+        }
+        .anime-card { 
+            background: #1a1a1a; 
+            border-radius: 12px; 
+            transition: all 0.3s ease; 
+            overflow: hidden;
+            border: 1px solid #222;
+        }
+        .anime-card:hover { 
+            transform: translateY(-5px); 
+            border-color: #4f46e5; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .glass-header {
+            background: rgba(11, 11, 11, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        #player-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 50;
+            padding: 20px;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+    </style>
+</head>
+<body class="pb-10">
+
+    <header class="glass-header p-4 mb-6 border-b border-zinc-800">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold tracking-tighter">
+                <span class="text-white">Nime</span><span class="text-indigo-500">Stream</span>
+            </h1>
+            <div class="flex-1 mx-6">
+                <input type="text" placeholder="Cari anime..." 
+                       class="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2 px-5 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+            </div>
+            <button class="text-zinc-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold border-l-4 border-indigo-500 pl-3">Update Terbaru</h2>
+            <span class="text-indigo-500 text-sm cursor-pointer hover:underline">Lainnya</span>
+        </div>
+
+        <div id="anime-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div class="animate-pulse bg-zinc-800 h-64 rounded-xl"></div>
+            <div class="animate-pulse bg-zinc-800 h-64 rounded-xl"></div>
+            <div class="animate-pulse bg-zinc-800 h-64 rounded-xl"></div>
+        </div>
+    </main>
+
+    <div id="player-modal">
+        <div class="max-w-4xl mx-auto mt-10">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="anime-title" class="text-lg font-bold truncate pr-4 text-indigo-400">Loading...</h3>
+                <button onclick="closePlayer()" class="bg-zinc-800 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition-all font-bold">TUTUP [X]</button>
+            </div>
+            <div class="video-wrapper bg-black rounded-xl overflow-hidden shadow-2xl">
+                <iframe id="video-iframe" src="" frameborder="0" allowfullscreen></iframe>
+            </div>
+            <div class="mt-6 p-4 bg-zinc-900 rounded-xl">
+                <p class="text-zinc-400 text-sm">Server: <span class="text-white font-bold">Main Server</span></p>
+                <div class="flex gap-2 mt-3">
+                    <button class="bg-indigo-600 px-4 py-1 rounded text-xs">720p</button>
+                    <button class="bg-zinc-800 px-4 py-1 rounded text-xs">480p</button>
+                    <button class="bg-zinc-800 px-4 py-1 rounded text-xs">360p</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('anime-grid');
+        const modal = document.getElementById('player-modal');
+        const iframe = document.getElementById('video-iframe');
+        const title = document.getElementById('anime-title');
+
+        // AMBIL DATA LIST
+        async function fetchAnime() {
+            try {
+                const res = await fetch('/api/latest');
+                const data = await res.json();
+                
+                grid.innerHTML = data.map(item => `
+                    <div class="anime-card group cursor-pointer" onclick="watch('${item.slug}', '${item.title}')">
+                        <div class="relative overflow-hidden">
+                            <img src="${item.thumb}" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                            <span class="absolute top-2 right-2 bg-indigo-600 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg">
+                                ${item.ep}
+                            </span>
+                        </div>
+                        <div class="p-3">
+                            <h4 class="text-sm font-bold truncate group-hover:text-indigo-400 transition-colors">${item.title}</h4>
+                            <p class="text-zinc-500 text-[10px] mt-1 uppercase">Sub Indonesia</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                grid.innerHTML = '<p class="text-red-500">Gagal memuat data. Periksa API! 💀</p>';
+            }
+        }
+
+        // AMBIL DATA VIDEO
+        async function watch(slug, animeName) {
+            title.innerText = animeName;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Lock scroll
+
+            try {
+                const res = await fetch(\`/api/watch?slug=\${slug}\`);
+                const data = await res.json();
+                if(data.streamUrl) {
+                    iframe.src = data.streamUrl;
+                } else {
+                    alert('Video tidak ditemukan! 💀');
+                }
+            } catch (err) {
+                alert('Gagal mengambil link streaming!');
+            }
+        }
+
+        function closePlayer() {
+            modal.style.display = 'none';
+            iframe.src = '';
+            document.body.style.overflow = 'auto'; // Unlock scroll
+        }
+
+        // Jalankan pas loading
+        fetchAnime();
+    </script>
+</body>
+</html>
