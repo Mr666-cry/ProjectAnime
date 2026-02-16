@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/latest", "destination": "/api/latest.js" },
+    { "source": "/api/watch/:slug", "destination": "/api/watch.js" }
+  ]
+}
